@@ -47,12 +47,10 @@ export default async function proxy(request) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - images, public folder contents
+     * Match all request paths except for:
+     * - _next/static, _next/image, favicon.ico, public images
+     * - api/ routes (handle their own auth, e.g. cron via Bearer token)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
