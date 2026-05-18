@@ -44,9 +44,29 @@ export default function DashboardPage() {
   );
   const totalProducts = clients.reduce((s, c) => s + c.products.length, 0);
 
-  // Faux yearly distribution for spark
-  const sparkData = [3, 5, 4, 7, 6, 8, 5, 9, 7, 6, 8, 9];
-  const maxBar = Math.max(...sparkData);
+  // Real per-category premium for spark bars
+  const byCatPremium = {};
+  clients.forEach((c) =>
+    c.products.forEach((p) => {
+      byCatPremium[p.category] = (byCatPremium[p.category] || 0) + p.premium_monthly;
+    })
+  );
+  const sparkData = Object.values(byCatPremium);
+  const maxBar = sparkData.length ? Math.max(...sparkData) : 1;
+
+  const sortedByJoining = [...clients].sort(
+    (a, b) => new Date(b.date_joining) - new Date(a.date_joining)
+  );
+  const newestClient = sortedByJoining[0];
+  const isJoinedThisWeek = newestClient && (() => {
+    const diff = (new Date() - new Date(newestClient.date_joining)) / (1000 * 60 * 60 * 24);
+    return diff <= 7;
+  })();
+  const needsClient = clients.find((c) => c.status === 'needs');
+  const recentProducts = clients
+    .flatMap((c) => c.products.map((p) => ({ ...p, clientName: c.name_full })))
+    .sort((a, b) => new Date(b.date_start) - new Date(a.date_start))
+    .slice(0, 4);
 
   const onOpenClient = (id) => {
     router.push(`/clients/${id}`);
@@ -94,7 +114,7 @@ export default function DashboardPage() {
             <span className="val num">
               {active} <small>/ {clients.length}</small>
             </span>
-            <span className="delta up">+1 השבוע</span>
+            <span className="delta up">{isJoinedThisWeek ? `+1 השבוע · ${newestClient.name_full}` : `סה"כ ${clients.length} בתיק`}</span>
           </div>
         </div>
         <div className="card">
@@ -117,7 +137,7 @@ export default function DashboardPage() {
           <div className="stat">
             <span className="lbl">דורש טיפול</span>
             <span className="val num">{needs}</span>
-            <span className="delta">תביעה פתוחה · יוסי אברהם</span>
+            <span className="delta">{needsClient ? `לטיפול · ${needsClient.name_full}` : 'הכל תקין'}</span>
           </div>
         </div>
       </div>
@@ -321,68 +341,36 @@ export default function DashboardPage() {
         <div className="card">
           <div className="card-h">
             <Icon name="bell" size={16} />
-            <h3>פעילות אחרונה</h3>
-            <span className="meta">7 ימים</span>
+            <h3>מוצרים אחרונים שנוספו</h3>
+            <span className="meta">{recentProducts.length} מוצרים</span>
           </div>
           <div className="card-b">
-            {[
-              {
-                dot: "accent",
-                text: "התווסף מוצר",
-                who: "דניאל כהן",
-                detail: "השקעות · מיטב דש · ₪1,500/חודש",
-                when: "14.5",
-              },
-              {
-                dot: "success",
-                text: "הערה נשמרה",
-                who: "מיכל לוי",
-                detail: '"מעבר דירה — לבדוק תכולה"',
-                when: "13.5",
-              },
-              {
-                dot: "warn",
-                text: "תזכורת תביעה",
-                who: "יוסי אברהם",
-                detail: "ממתין למסמכים מהראל",
-                when: "12.5",
-              },
-              {
-                dot: "text-3",
-                text: "נצפה כרטיס",
-                who: "עומר שטרן",
-                detail: "אין שינוי בסטטוס",
-                when: "10.5",
-              },
-            ].map((a, i) => (
-              <div key={i} className="row-item">
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background:
-                      a.dot === "accent"
-                        ? "var(--accent)"
-                        : a.dot === "success"
-                        ? "var(--success)"
-                        : a.dot === "warn"
-                        ? "var(--warn)"
-                        : "var(--text-3)",
-                  }}
-                />
-                <div className="col" style={{ alignItems: "flex-start" }}>
-                  <div className="name" style={{ fontSize: 13 }}>
-                    {a.text} ·{" "}
-                    <span className="text-2" style={{ fontWeight: 400 }}>
-                      {a.who}
-                    </span>
+            {recentProducts.length === 0 ? (
+              <Empty>אין מוצרים עדיין.</Empty>
+            ) : (
+              recentProducts.map((p) => (
+                <div key={p.id} className="row-item">
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--accent)",
+                    }}
+                  />
+                  <div className="col" style={{ alignItems: "flex-start" }}>
+                    <div className="name" style={{ fontSize: 13 }}>
+                      {p.category} ·{" "}
+                      <span className="text-2" style={{ fontWeight: 400 }}>
+                        {p.clientName}
+                      </span>
+                    </div>
+                    <div className="desc">{p.company} · {fmtCurrency(p.premium_monthly)}/חודש</div>
                   </div>
-                  <div className="desc">{a.detail}</div>
+                  <div className="meta mono">{fmtDate(p.date_start)}</div>
                 </div>
-                <div className="meta mono">{a.when}</div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

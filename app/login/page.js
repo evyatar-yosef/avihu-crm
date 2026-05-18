@@ -91,10 +91,15 @@ export default function LoginPage() {
             letterSpacing: "-.025em",
           }}
         >
-          ערב טוב, אביהו
+          {(() => {
+            const h = new Date().getHours();
+            if (h < 12) return "בוקר טוב, אביהו";
+            if (h < 17) return "צהריים טובים, אביהו";
+            return "ערב טוב, אביהו";
+          })()}
         </h1>
         <div className="text-2" style={{ fontSize: 14, marginBottom: 28 }}>
-          חמישה לקוחות, שלוש עשרה פוליסות, ושיחה אחת ליום הולדת.
+          ברוך הבא למערכת ניהול הלקוחות שלך.
         </div>
 
         <Field label="כתובת אימייל">
