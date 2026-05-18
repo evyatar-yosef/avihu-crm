@@ -1,22 +1,24 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Drawer, Field } from "@/components/ui/Shared";
 import Icon from "@/components/ui/Icon";
 
+const makeEmpty = () => ({
+  name_full: "",
+  phone_number: "",
+  date_of_birth: "",
+  date_joining: new Date().toISOString().slice(0, 10),
+  status: "active",
+  general_notes: "",
+});
+
 export default function AddClientDrawer({ open, onClose, onSubmit }) {
-  const empty = {
-    name_full: "",
-    phone_number: "",
-    date_of_birth: "",
-    date_joining: new Date().toISOString().slice(0, 10),
-    status: "active",
-    general_notes: "",
-  };
-  
-  const [c, setC] = useState(empty);
-  
+  const [c, setC] = useState(makeEmpty);
+  const prevOpen = useRef(false);
+
   useEffect(() => {
-    if (open) setC(empty);
+    if (open && !prevOpen.current) setC(makeEmpty());
+    prevOpen.current = open;
   }, [open]);
 
   const valid = c.name_full.trim() && c.phone_number.trim() && c.date_of_birth;
@@ -58,7 +60,6 @@ export default function AddClientDrawer({ open, onClose, onSubmit }) {
           placeholder="לדוגמה: רחל פרידמן"
           value={c.name_full}
           onChange={(e) => setC({ ...c, name_full: e.target.value })}
-          autoFocus
         />
       </Field>
       <div className="field-row">

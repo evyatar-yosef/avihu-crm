@@ -3,21 +3,34 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field } from "@/components/ui/Shared";
 import Icon from "@/components/ui/Icon";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("avihu@avihu-insurance.co.il");
-  const [pwd, setPwd] = useState("••••••••••••");
+  const [email, setEmail] = useState("avihuyoyo@gmail.com");
+  const [pwd, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const submit = (e) => {
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const submit = async (e) => {
     e?.preventDefault();
     setBusy(true);
-    setTimeout(() => {
-      setBusy(false);
-      router.push("/");
-    }, 420);
+    setErrorMsg("");
+    
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pwd,
+    });
+
+    setBusy(false);
+
+    if (error) {
+      setErrorMsg("אימייל או סיסמה שגויים.");
+    } else {
+      window.location.href = "/";
+    }
   };
 
   return (
@@ -55,6 +68,10 @@ export default function LoginPage() {
       </div>
 
       <form className="login-card" onSubmit={submit}>
+        <div className="mobile-only" style={{ marginBottom: 20, alignItems: "center", gap: 10 }}>
+          <div className="logo" style={{ width: 32, height: 32, fontSize: 16, margin: 0 }}>א</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Avihu CRM</div>
+        </div>
         <div
           style={{
             fontSize: 11,
@@ -153,9 +170,15 @@ export default function LoginPage() {
           </a>
         </div>
 
+        {errorMsg && (
+          <div style={{ color: "var(--warn)", fontSize: 13, marginTop: 12, textAlign: "center" }}>
+            {errorMsg}
+          </div>
+        )}
+
         <button
           className="btn primary"
-          style={{ marginTop: 22, height: 42, fontSize: 14, justifyContent: "center" }}
+          style={{ marginTop: errorMsg ? 12 : 22, height: 42, fontSize: 14, justifyContent: "center" }}
           type="submit"
           disabled={busy}
         >

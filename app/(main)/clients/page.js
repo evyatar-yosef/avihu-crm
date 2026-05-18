@@ -1,17 +1,31 @@
 "use client";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useClients } from "@/components/ClientProvider";
+import { useUI } from "@/components/UIProvider";
 import { Avatar, StatusPill, Empty } from "@/components/ui/Shared";
 import Icon from "@/components/ui/Icon";
 import { isBirthdayToday, isJoiningAnniversary, fmtDate, fmtCurrency, yearsSince } from "@/lib/utils";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 
-export default function ClientsPage() {
+function ClientsContent() {
   const router = useRouter();
-  const { clients } = useClients();
+  const searchParams = useSearchParams();
+  const { clients, loading } = useClients();
+  const { setShowAddClient } = useUI();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    if (searchParams.get("focus") === "search" && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchParams]);
+
+  if (loading) {
+    return <div className="pg" style={{ padding: 32 }}>טוען לקוחות...</div>;
+  }
 
   const filtered = clients.filter((c) => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
@@ -21,9 +35,7 @@ export default function ClientsPage() {
   });
 
   const onAddClient = () => {
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "n", bubbles: true })
-    );
+    setShowAddClient(true);
   };
 
   const onOpenClient = (id) => {
@@ -53,6 +65,7 @@ export default function ClientsPage() {
         <div className="search" style={{ flex: 1, maxWidth: 380 }}>
           <Icon name="search" />
           <input
+            ref={searchInputRef}
             className="input"
             placeholder="חיפוש לפי שם או מספר טלפון…"
             value={search}
@@ -92,9 +105,10 @@ export default function ClientsPage() {
       </div>
 
       <div className="card fade-up d1" style={{ overflow: "hidden" }}>
-        <table className="tbl">
-          <thead>
-            <tr>
+        <div className="table-responsive">
+          <table className="tbl">
+            <thead>
+              <tr>
               <th style={{ width: 36 }}></th>
               <th>שם מלא</th>
               <th>טלפון</th>
@@ -227,7 +241,16 @@ export default function ClientsPage() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function ClientsPage() {
+  return (
+    <Suspense fallback={<div className="pg" style={{ padding: 32 }}>טוען לקוחות...</div>}>
+      <ClientsContent />
+    </Suspense>
   );
 }

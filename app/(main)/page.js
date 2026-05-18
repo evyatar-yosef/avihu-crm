@@ -2,6 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { useClients } from "@/components/ClientProvider";
+import { useUI } from "@/components/UIProvider";
 import { Avatar, Empty } from "@/components/ui/Shared";
 import Icon from "@/components/ui/Icon";
 import {
@@ -16,7 +17,12 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { clients } = useClients();
+  const { clients, loading } = useClients();
+  const { setShowAddClient } = useUI();
+
+  if (loading) {
+    return <div className="pg" style={{ padding: 32 }}>טוען נתונים...</div>;
+  }
 
   const birthdays = clients.filter((c) => isBirthdayToday(c.date_of_birth));
   const anniversaries = clients.filter((c) =>
@@ -47,11 +53,7 @@ export default function DashboardPage() {
   };
 
   const onAddClient = () => {
-    // Triggering the drawer would be done via keyboard shortcut or we can pass state down from AppLayout.
-    // For now, let's dispatch a custom event to open the drawer
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "n", bubbles: true })
-    );
+    setShowAddClient(true);
   };
 
   // The design hardcoded the date "שישי, 15 במאי", but let's make it real-ish
@@ -304,7 +306,7 @@ export default function DashboardPage() {
                       </span>
                       <span
                         className="num"
-                        style={{ width: 80, textAlign: "end" }}
+                        style={{ minWidth: 80, textAlign: "end" }}
                       >
                         {fmtCurrency(v)}
                       </span>

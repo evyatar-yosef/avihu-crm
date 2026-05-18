@@ -1,21 +1,53 @@
-"use client";
-import React, { useState, useEffect } from "react";
+﻿"use client";
+import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import AddClientDrawer from "@/components/features/AddClientDrawer";
 import Icon from "@/components/ui/Icon";
 import { useClients } from "@/components/ClientProvider";
+import { useUI } from "@/components/UIProvider";
 import { isBirthdayToday, isJoiningAnniversary } from "@/lib/utils";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function AppLayout({ children, crumbs = [] }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { clients, addClient } = useClients();
-  const [showAddClient, setShowAddClient] = useState(false);
+  const { showAddClient, setShowAddClient, mobileMenuOpen, setMobileMenuOpen } = useUI();
   const [themeDark, setThemeDark] = useState(false);
+
+  // useCallback keeps onSearchClick stable — no refs during render
+  const onSearchClick = useCallback(() => {
+    setMobileMenuOpen(false);
+    if (pathname !== "/clients") {
+      router.push("/clients?focus=search");
+    } else {
+      const input = document.querySelector(".filters .input");
+      if (input) input.focus();
+    }
+  }, [pathname, router, setMobileMenuOpen]);
 
   useEffect(() => {
     const isDark = document.documentElement.dataset.theme === "dark";
-    setThemeDark(isDark);
-  }, []);
+    if (isDark) {
+      queueMicrotask(() => setThemeDark(true));
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setShowAddClient(true);
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        onSearchClick();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onSearchClick, setShowAddClient]);
 
   const toggleTheme = () => {
     const n = !themeDark;
@@ -30,11 +62,6 @@ export default function AppLayout({ children, crumbs = [] }) {
   const handleAddClient = (newClient) => {
     addClient(newClient);
     setShowAddClient(false);
-  };
-
-  const onSearchClick = () => {
-    const input = document.querySelector(".filters .input");
-    if (input) input.focus();
   };
 
   const topActions = (
@@ -59,12 +86,21 @@ export default function AppLayout({ children, crumbs = [] }) {
     <>
       <div className="app">
         <Sidebar
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
           alertsCount={alertsCount}
-          onAddClient={() => setShowAddClient(true)}
+          onAddClient={() => {
+            setMobileMenuOpen(false);
+            setShowAddClient(true);
+          }}
           onSearchClick={onSearchClick}
         />
         <main className="main">
-          <Topbar crumbs={crumbs} actions={topActions} />
+          <Topbar
+            crumbs={crumbs}
+            actions={topActions}
+            onMenuClick={() => setMobileMenuOpen(true)}
+          />
           {children}
         </main>
       </div>

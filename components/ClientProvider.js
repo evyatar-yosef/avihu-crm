@@ -1,52 +1,90 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { SAMPLE_CLIENTS } from "@/lib/data";
+import React, { createContext, useContext, useState, useEffect, startTransition } from "react";
+import { supabase } from "@/lib/supabase";
 
 const ClientContext = createContext();
 
 export function ClientProvider({ children }) {
   const [clients, setClients] = useState([]);
-  
-  useEffect(() => {
-    // On mount, load from localStorage or use initial data
-    const saved = localStorage.getItem("avihu_clients");
-    if (saved) {
-      setClients(JSON.parse(saved));
-    } else {
-      setClients(SAMPLE_CLIENTS);
+  const [loading, setLoading] = useState(true);
+
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*, products(*)');
+      
+      if (error) throw error;
+      
+      if (data) {
+        // Sort products by date inside each client just in case
+        const withProducts = data.map(c => ({
+          ...c,
+          products: c.products || []
+        }));
+        startTransition(() => setClients(withProducts));
+      }
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchClients();
   }, []);
 
-  useEffect(() => {
-    if (clients.length > 0) {
-      localStorage.setItem("avihu_clients", JSON.stringify(clients));
-    }
-  }, [clients]);
+  const addClient = async (newClient) => {
+    const id = `c-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
+    const full = { ...newClient, id };
+    
+    // Optimistic update
+    const next = [{ ...full, products: [] }, ...clients];
+    setClients(next);
 
-  const addClient = (newClient) => {
-    const id = `c-${1300 + clients.length}`;
-    const full = { ...newClient, id, products: [] };
-    setClients((prev) => [full, ...prev]);
+    const { error } = await supabase.from('clients').insert(full);
+    if (error) {
+      console.error("Error adding client:", error);
+      fetchClients(); // revert on error
+    }
     return id;
   };
 
-  const updateClient = (updated) => {
-    setClients((prev) =>
-      prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
-    );
+  const updateClient = async (updated) => {
+    // Optimistic update
+    const next = clients.map((c) => (c.id === updated.id ? { ...c, ...updated } : c));
+    setClients(next);
+
+    // Filter out products before sending to 'clients' table
+    const { products, ...clientData } = updated;
+    const { error } = await supabase.from('clients').update(clientData).eq('id', updated.id);
+    
+    if (error) {
+      console.error("Error updating client:", error);
+      fetchClients(); // revert on error
+    }
   };
 
-  const addProduct = (clientId, p) => {
-    const id = `p-${7100 + Math.floor(Math.random() * 900)}`;
-    setClients((prev) =>
-      prev.map((c) =>
-        c.id === clientId ? { ...c, products: [...c.products, { ...p, id }] } : c
-      )
+  const addProduct = async (clientId, p) => {
+    const id = `p-${Date.now().toString().slice(-4)}${Math.floor(Math.random() * 10)}`;
+    const newProduct = { ...p, id, client_id: clientId };
+    
+    // Optimistic update
+    const next = clients.map((c) =>
+      c.id === clientId ? { ...c, products: [...c.products, newProduct] } : c
     );
+    setClients(next);
+
+    const { error } = await supabase.from('products').insert(newProduct);
+    if (error) {
+      console.error("Error adding product:", error);
+      fetchClients(); // revert on error
+    }
   };
 
   return (
-    <ClientContext.Provider value={{ clients, addClient, updateClient, addProduct }}>
+    <ClientContext.Provider value={{ clients, loading, addClient, updateClient, addProduct, refresh: fetchClients }}>
       {children}
     </ClientContext.Provider>
   );
@@ -55,3 +93,4 @@ export function ClientProvider({ children }) {
 export function useClients() {
   return useContext(ClientContext);
 }
+

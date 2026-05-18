@@ -38,7 +38,7 @@ const DetailItem = ({ label, value, display, editing, type = "text", onChange })
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          style={{ width: 220 }}
+          style={{ width: "100%", maxWidth: 220 }}
           dir={type === "date" ? "ltr" : "auto"}
         />
       )}
@@ -49,7 +49,7 @@ const DetailItem = ({ label, value, display, editing, type = "text", onChange })
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { clients, updateClient, addProduct } = useClients();
+  const { clients, loading, updateClient, addProduct } = useClients();
 
   const [client, setClient] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -69,7 +69,7 @@ export default function ClientDetailPage() {
     }
   }, [params?.id, clients]);
 
-  if (!client) return <div className="pg"><Empty>טוען נתונים...</Empty></div>;
+  if (loading || !client) return <div className="pg"><Empty>טוען נתונים...</Empty></div>;
 
   const saveProfile = () => {
     updateClient(draft);

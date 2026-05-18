@@ -28,8 +28,8 @@ export const Drawer = ({ open, onClose, title, sub, children, footer }) => {
 
   return (
     <>
-      <div className={`drawer-scrim ${open ? "open" : ""}`} onClick={onClose} />
-      <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open}>
+      <div className={`drawer-scrim ${open ? "open" : ""}`} onClick={onClose} {...(!open ? { inert: "" } : {})} />
+      <aside className={`drawer ${open ? "open" : ""}`} aria-hidden={!open} {...(!open ? { inert: "" } : {})}>
         <header className="drawer-h">
           <div style={{ flex: 1 }}>
             <h2>{title}</h2>
