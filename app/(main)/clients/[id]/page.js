@@ -49,7 +49,7 @@ const DetailItem = ({ label, value, display, editing, type = "text", onChange })
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { clients, loading, updateClient, addProduct } = useClients();
+  const { clients, loading, updateClient, deleteClient, addProduct } = useClients();
 
   const [client, setClient] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -75,6 +75,16 @@ export default function ClientDetailPage() {
     updateClient(draft);
     setEditing(false);
     setSavedAt("עכשיו");
+  };
+
+  const handleDelete = async () => {
+    const confirmMsg = `האם אתה בטוח שברצונך למחוק את הלקוח ${client.name_full}?` + "\n" + "פעולה זו תמחק לצמיתות את הלקוח ואת כל המוצרים המשויכים אליו.";
+    if (window.confirm(confirmMsg)) {
+      const ok = await deleteClient(client.id);
+      if (ok) {
+        router.push("/clients");
+      }
+    }
   };
 
   const saveNotes = () => {
@@ -106,7 +116,7 @@ export default function ClientDetailPage() {
       <div className="card fade-up" style={{ overflow: "hidden" }}>
         {/* Client header */}
         <div className="client-h">
-          <Avatar name={client.name_full} size="lg" accent />
+          <Avatar name={editing ? draft?.name_full || "" : client.name_full} size="lg" accent />
           <div className="titles" style={{ flex: 1 }}>
             <div
               style={{
@@ -116,7 +126,24 @@ export default function ClientDetailPage() {
                 flexWrap: "wrap",
               }}
             >
-              <h1>{client.name_full}</h1>
+              {editing ? (
+                <input
+                  className="input"
+                  value={draft?.name_full || ""}
+                  onChange={(e) => setDraft({ ...draft, name_full: e.target.value })}
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 600,
+                    height: 36,
+                    width: "auto",
+                    minWidth: 200,
+                    maxWidth: 320,
+                  }}
+                  placeholder="שם מלא"
+                />
+              ) : (
+                <h1>{client.name_full}</h1>
+              )}
               <StatusPill status={client.status} />
               {isBdayToday && (
                 <span className="pill accent">
@@ -144,16 +171,44 @@ export default function ClientDetailPage() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button className="btn sm">
+            <a
+              href={client.phone_number ? `tel:${client.phone_number}` : "#"}
+              className="btn sm"
+              style={{ textDecoration: "none" }}
+            >
               <Icon name="phone" size={13} /> חיוג
-            </button>
-            <button className="btn sm" onClick={() => setEditing((e) => !e)}>
+            </a>
+            <button
+              className="btn sm"
+              onClick={() => {
+                if (editing) {
+                  saveProfile();
+                } else {
+                  setEditing(true);
+                }
+              }}
+            >
               <Icon name={editing ? "check" : "edit"} size={13} />
               {editing ? "שמירה" : "עריכה"}
             </button>
-            <button className="btn icon sm ghost">
-              <Icon name="dots" size={14} />
-            </button>
+            {editing ? (
+              <button
+                className="btn sm"
+                style={{
+                  color: "var(--danger)",
+                  borderColor: "var(--danger)",
+                  background: "rgba(184,83,74,0.06)",
+                }}
+                onClick={handleDelete}
+              >
+                <Icon name="trash" size={13} />
+                מחיקה
+              </button>
+            ) : (
+              <button className="btn icon sm ghost">
+                <Icon name="dots" size={14} />
+              </button>
+            )}
           </div>
         </div>
 

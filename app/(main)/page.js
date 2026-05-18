@@ -35,6 +35,34 @@ export default function DashboardPage() {
     .sort((a, b) => a.days - b.days)
     .slice(0, 3);
 
+  // כמה ימים נותרו עד סוף שבוע העבודה (יום שישי = יום 5)
+  const daysLeftInWeek = (() => {
+    const day = new Date().getDay(); // 0=א, 1=ב, ..., 5=ו, 6=ש
+    return day <= 5 ? 5 - day : 0;
+  })();
+
+  // פעולות שימור השבוע (לא היום)
+  const daysUntilAnniversary = (dateStr) => {
+    if (!dateStr) return 999;
+    const today = new Date();
+    const d = new Date(dateStr);
+    const thisYear = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+    let diff = Math.round((thisYear - today) / (1000 * 60 * 60 * 24));
+    if (diff < 0) diff += 365;
+    return diff;
+  };
+
+  const weekBdays = clients.filter((c) => {
+    const days = daysUntilBirthday(c.date_of_birth);
+    return days > 0 && days <= daysLeftInWeek;
+  });
+  const weekAnniversaries = clients.filter((c) => {
+    const days = daysUntilAnniversary(c.date_joining);
+    return days > 0 && days <= daysLeftInWeek;
+  });
+  const weekTotal = weekBdays.length + weekAnniversaries.length;
+  const todayTotal = birthdays.length + anniversaries.length;
+
   const active = clients.filter((c) => c.status === "active").length;
   const needs = clients.filter((c) => c.status === "needs").length;
   const totalPremium = clients.reduce(
@@ -89,17 +117,36 @@ export default function DashboardPage() {
         <div>
           <h1>{todayDateStr}</h1>
           <div className="sub">
-            יש לך{" "}
-            <strong style={{ color: "var(--text)" }}>
-              {birthdays.length + anniversaries.length} פעולות שימור
-            </strong>{" "}
-            היום, ועוד שלוש שצריך לסגור עד סוף השבוע.
+            {todayTotal === 0 && weekTotal === 0 ? (
+              "אין פעולות שימור מתוכננות השבוע."
+            ) : todayTotal === 0 ? (
+              <>
+                יש לך{" "}
+                <strong style={{ color: "var(--text)" }}>
+                  {weekTotal} פעולות שימור
+                </strong>{" "}
+                עד סוף השבוע.
+              </>
+            ) : weekTotal === 0 ? (
+              <>
+                יש לך{" "}
+                <strong style={{ color: "var(--text)" }}>
+                  {todayTotal} פעולות שימור
+                </strong>{" "}
+                היום.
+              </>
+            ) : (
+              <>
+                יש לך{" "}
+                <strong style={{ color: "var(--text)" }}>
+                  {todayTotal} פעולות שימור
+                </strong>{" "}
+                היום, ועוד {weekTotal} שצריך לסגור עד סוף השבוע.
+              </>
+            )}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn">
-            <Icon name="calendar" size={14} /> תצוגת חודש
-          </button>
           <button className="btn primary" onClick={onAddClient}>
             <Icon name="plus" size={14} /> לקוח חדש
           </button>

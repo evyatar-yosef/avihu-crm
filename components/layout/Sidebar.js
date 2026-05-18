@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import { initials } from "@/lib/utils";
 
-const AGENT = { name: "אביהו לוי", role: "סוכן ביטוח ופיננסים" };
+const AGENT = { name: "אביהו יוסף", role: "סוכן ביטוח ופיננסים" };
 
 export default function Sidebar({ open, onClose, alertsCount, onAddClient, onSearchClick }) {
   const pathname = usePathname();
@@ -76,17 +76,7 @@ export default function Sidebar({ open, onClose, alertsCount, onAddClient, onSea
           </button>
         </div>
 
-        <div className="sb-group" style={{ marginTop: "auto" }}>
-          <div className="sb-group-h">כלים</div>
-          <button className="sb-item">
-            <Icon name="download" size={15} /> ייצוא לאקסל
-          </button>
-          <button className="sb-item">
-            <Icon name="upload" size={15} /> ייבוא מאקסל
-          </button>
-        </div>
-
-        <div className="sb-foot">
+        <div className="sb-foot" style={{ marginTop: "auto" }}>
           <div className="sb-avatar">{initials(AGENT.name)}</div>
           <div className="sb-user">
             {AGENT.name}

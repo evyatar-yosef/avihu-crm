@@ -83,8 +83,22 @@ export function ClientProvider({ children }) {
     }
   };
 
+  const deleteClient = async (id) => {
+    // Optimistic update
+    const next = clients.filter((c) => c.id !== id);
+    setClients(next);
+
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) {
+      console.error("Error deleting client:", error);
+      fetchClients(); // revert on error
+      return false;
+    }
+    return true;
+  };
+
   return (
-    <ClientContext.Provider value={{ clients, loading, addClient, updateClient, addProduct, refresh: fetchClients }}>
+    <ClientContext.Provider value={{ clients, loading, addClient, updateClient, deleteClient, addProduct, refresh: fetchClients }}>
       {children}
     </ClientContext.Provider>
   );

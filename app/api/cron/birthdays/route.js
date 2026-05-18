@@ -2,28 +2,47 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Use service role key if available for server-side queries (bypasses RLS)
-// Falls back to anon key which still works with proper policies
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
 export async function GET(request) {
-  // Verify the request comes from our cron job (not a random user)
+  const {
+    NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    RESEND_API_KEY,
+    RESEND_FROM_EMAIL,
+    CRON_SECRET,
+    ADMIN_EMAIL,
+    NEXT_PUBLIC_SITE_URL,
+  } = process.env;
+
+  if (!CRON_SECRET) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+  }
+
   const authHeader = request.headers.get('authorization');
-  const expected = `Bearer ${process.env.CRON_SECRET}`;
-  if (authHeader !== expected) {
+  if (authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!NEXT_PUBLIC_SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json(
+      { error: 'Supabase server credentials not configured' },
+      { status: 500 }
+    );
+  }
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL || !ADMIN_EMAIL) {
+    return NextResponse.json(
+      { error: 'Resend / admin email not configured' },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
   const today = new Date();
-  const month = today.getMonth() + 1; // 1-12
+  const month = today.getMonth() + 1;
   const day = today.getDate();
 
-  // Fetch clients whose birthday month and day match today
   const { data: clients, error } = await supabase
     .from('clients')
     .select('id, name_full, date_of_birth, phone_number')
@@ -34,7 +53,6 @@ export async function GET(request) {
     return NextResponse.json({ error: 'DB error' }, { status: 500 });
   }
 
-  // Filter in JS to match month and day (ignoring year)
   const birthdayClients = (clients || []).filter((c) => {
     if (!c.date_of_birth) return false;
     const dob = new Date(c.date_of_birth);
@@ -45,12 +63,15 @@ export async function GET(request) {
     return NextResponse.json({ message: 'No birthdays today 🎂' });
   }
 
-  // Build HTML email
   const todayStr = today.toLocaleDateString('he-IL', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
+
+  const clientsLink = NEXT_PUBLIC_SITE_URL
+    ? `${NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')}/clients`
+    : null;
 
   const clientRows = birthdayClients
     .map((c) => {
@@ -67,6 +88,12 @@ export async function GET(request) {
         </tr>`;
     })
     .join('');
+
+  const ctaHtml = clientsLink
+    ? `<a href="${clientsLink}" style="display:inline-block;background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">
+        פתח את מסך הלקוחות ←
+      </a>`
+    : '';
 
   const html = `
 <!DOCTYPE html>
@@ -119,9 +146,7 @@ export async function GET(request) {
               <p style="margin:0 0 16px;font-size:13px;color:#6b7280;">
                 מומלץ לשלוח הודעת ברכה קצרה — לקוח שמרגיש שזוכרים אותו, נשאר לקוח לחיים.
               </p>
-              <a href="http://localhost:3000/clients" style="display:inline-block;background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">
-                פתח את מסך הלקוחות ←
-              </a>
+              ${ctaHtml}
             </td>
           </tr>
 
@@ -141,9 +166,10 @@ export async function GET(request) {
 </body>
 </html>`;
 
+  const resend = new Resend(RESEND_API_KEY);
   const { error: sendError } = await resend.emails.send({
-    from: 'Avihu CRM <onboarding@resend.dev>',
-    to: 'avihuyoyo@gmail.com',
+    from: RESEND_FROM_EMAIL,
+    to: ADMIN_EMAIL,
     subject: `🎂 ${birthdayClients.length} ימי הולדת היום — ${todayStr}`,
     html,
   });

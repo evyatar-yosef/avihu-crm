@@ -52,9 +52,6 @@ function ClientsContent() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn">
-            <Icon name="download" size={14} /> ייצוא
-          </button>
           <button className="btn primary" onClick={onAddClient}>
             <Icon name="plus" size={14} /> לקוח חדש
           </button>

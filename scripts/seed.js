@@ -3,12 +3,19 @@ global.WebSocket = require('ws');
 const { createClient } = require('@supabase/supabase-js');
 
 // To run this script: node scripts/seed.js
+// Requires SEED_EMAIL and SEED_PASSWORD in .env.local (your Supabase user credentials).
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const seedEmail = process.env.SEED_EMAIL;
+const seedPassword = process.env.SEED_PASSWORD;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error("Missing environment variables. Please check your .env.local file.");
+  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.");
+  process.exit(1);
+}
+if (!seedEmail || !seedPassword) {
+  console.error("Missing SEED_EMAIL or SEED_PASSWORD in .env.local. Add them temporarily to seed.");
   process.exit(1);
 }
 
@@ -86,19 +93,14 @@ const SAMPLE_CLIENTS = [
 ];
 
 async function seed() {
-  // נתחבר עם המשתמש שיצרת כדי לעקוף את חסימת האבטחה (RLS)
-  const email = 'avihuyoyo@gmail.com';
-  // אם שמת סיסמה אחרת כשנרשמת ב-Supabase, תשנה אותה פה זמנית רק בשביל ה-seed:
-  const password = 'avihuyoyo@gmail.com'; 
-  
-  console.log(`Logging in as ${email}...`);
+  console.log(`Logging in as ${seedEmail}...`);
   const { error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+    email: seedEmail,
+    password: seedPassword,
   });
 
   if (authError) {
-    console.error("Login failed! Please update the password in scripts/seed.js");
+    console.error("Login failed! Check SEED_EMAIL / SEED_PASSWORD in .env.local.");
     console.error(authError.message);
     process.exit(1);
   }

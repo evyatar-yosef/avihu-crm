@@ -7,6 +7,7 @@ import Icon from "@/components/ui/Icon";
 import { useClients } from "@/components/ClientProvider";
 import { useUI } from "@/components/UIProvider";
 import { isBirthdayToday, isJoiningAnniversary } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 import { usePathname, useRouter } from "next/navigation";
 
 export default function AppLayout({ children, crumbs = [] }) {
@@ -55,6 +56,11 @@ export default function AppLayout({ children, crumbs = [] }) {
     document.documentElement.dataset.theme = n ? "dark" : "light";
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   const alertsCount = clients.filter(
     (c) => isBirthdayToday(c.date_of_birth) || isJoiningAnniversary(c.date_joining)
   ).length;
@@ -73,10 +79,7 @@ export default function AppLayout({ children, crumbs = [] }) {
       >
         <Icon name={themeDark ? "sun" : "moon"} size={15} />
       </button>
-      <button className="btn ghost icon" title="הגדרות">
-        <Icon name="settings" size={15} />
-      </button>
-      <button className="btn ghost icon" title="התנתקות">
+      <button className="btn ghost icon" title="התנתקות" onClick={handleSignOut}>
         <Icon name="arrowLeft" size={15} />
       </button>
     </>

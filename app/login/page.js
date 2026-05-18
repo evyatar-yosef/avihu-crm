@@ -1,13 +1,11 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Field } from "@/components/ui/Shared";
 import Icon from "@/components/ui/Icon";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("avihuyoyo@gmail.com");
+  const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
